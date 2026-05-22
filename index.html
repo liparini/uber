@@ -620,8 +620,23 @@ function toast(msg, type = 'ok') {
 }
 
 // ── formatos ─────────────────────────────────────
+function normalizeDate(d) {
+  if (!d) return '';
+  d = String(d).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  const parsed = new Date(d);
+  if (!isNaN(parsed)) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return d;
+}
+
 function fmtDate(d) {
   if (!d) return '';
+  d = normalizeDate(d);
   const parts = d.split('-');
   if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
   return d;
@@ -723,8 +738,13 @@ function doSwitchTab(tab) {
   });
   document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
-  if (tab === 'history') renderHistory();
-  if (tab === 'report')  renderReport();
+  if (tab === 'history') loadTrips();
+  if (tab === 'report')  loadAndReport();
+}
+
+async function loadAndReport() {
+  await loadTrips();
+  renderReport();
 }
 
 // ── carregar viagens do Sheets ────────────────────
@@ -736,7 +756,7 @@ async function loadTrips() {
     const res = await fetch(`${url}?action=list`);
     const data = await res.json();
     if (data.ok) {
-      trips = data.trips;
+      trips = data.trips.map(t => ({ ...t, date: normalizeDate(t.date) }));
       setBadge('ok');
       document.getElementById('config-banner').classList.add('hidden');
     } else {
