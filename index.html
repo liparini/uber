@@ -314,7 +314,76 @@
       .metrics .metric:last-child { grid-column: 1 / -1; }
       .tab span { display: none; }
     }
+
+    /* ── AUTH MODAL ── */
+    .auth-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.45);
+      align-items: center; justify-content: center;
+      min-height: 100vh;
+    }
+    .auth-overlay.open { display: flex; }
+    .auth-modal {
+      background: var(--surface);
+      border: 1px solid var(--border-md);
+      border-radius: var(--radius-lg);
+      padding: 28px 28px 24px;
+      width: 100%; max-width: 380px;
+      margin: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    .auth-modal-icon {
+      width: 44px; height: 44px;
+      background: var(--amber-bg);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .auth-modal h2 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .auth-modal p  { font-size: 13px; color: var(--text-2); margin-bottom: 20px; line-height: 1.5; }
+    .auth-error {
+      font-size: 12px; color: var(--pink);
+      margin-top: 12px;
+      display: none; align-items: center; gap: 5px;
+    }
+    .auth-error.show { display: flex; }
+    .auth-cancel {
+      display: block; width: 100%; margin-top: 10px;
+      padding: 10px;
+      background: transparent;
+      border: 1px solid var(--border-md);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500; color: var(--text-2);
+      cursor: pointer; transition: background 0.15s; text-align: center;
+    }
+    .auth-cancel:hover { background: var(--surface-2); }
+    .google-btn-wrap {
+      display: flex; justify-content: center;
+      margin-bottom: 4px;
+    }
+    .auth-loading {
+      display: none; align-items: center; justify-content: center;
+      gap: 8px; padding: 12px;
+      font-size: 13px; color: var(--text-2);
+    }
+    .auth-loading.show { display: flex; }
+    .auth-loading .spinner { border-top-color: var(--text-2); border-color: var(--border-md); }
+    .auth-loading .spinner { width: 16px; height: 16px; border: 2px solid var(--border-md); border-top-color: var(--text-2); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .btn-ghost {
+      padding: 11px 16px;
+      background: transparent;
+      border: 1px solid var(--border-md);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 500; color: var(--text-2);
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-ghost:hover { background: var(--surface-2); }
   </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -474,6 +543,31 @@
     </div>
   </section>
 
+
+<!-- AUTH MODAL -->
+<div class="auth-overlay" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+  <div class="auth-modal">
+    <div class="auth-modal-icon" aria-hidden="true"><i class="ti ti-lock"></i></div>
+    <h2 id="auth-title">Área restrita</h2>
+    <p>Informe seu e-mail para acessar as configurações.</p>
+    <div class="field">
+      <label for="auth-email">E-mail</label>
+      <input type="email" id="auth-email" placeholder="seuemail@gmail.com"
+             onkeydown="if(event.key==='Enter') checkAuth()" />
+    </div>
+    <div class="auth-error" id="auth-error">
+      <i class="ti ti-x" aria-hidden="true"></i>
+      <span>E-mail sem permissão de acesso.</span>
+    </div>
+    <div class="auth-btns">
+      <button class="btn-ghost" onclick="closeAuth()">Cancelar</button>
+      <button class="btn-primary" onclick="checkAuth()">
+        <i class="ti ti-lock-open" aria-hidden="true"></i> Entrar
+      </button>
+    </div>
+  </div>
+</div>
+
 </main>
 
 <!-- TOAST -->
@@ -539,8 +633,91 @@ function fmtCurrency(v) {
   return 'R$ ' + parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// ── auth ──────────────────────────────────────────
+// ⚠️  Substitua pelo seu Client ID do Google Cloud Console
+const GOOGLE_CLIENT_ID = '172874368883-eeqa89vj0fuo2af0r5r1deh3ue6096o7.apps.googleusercontent.com';
+const ADMIN_EMAIL      = 'carolline.bhz@gmail.com';
+let authGranted = false;
+
+function initGoogleSignIn() {
+  if (typeof google === 'undefined' || !google.accounts) {
+    setTimeout(initGoogleSignIn, 300);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: false,
+    cancel_on_tap_outside: false
+  });
+  renderGoogleBtn();
+}
+
+function renderGoogleBtn() {
+  const wrap = document.getElementById('google-signin-btn');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  google.accounts.id.renderButton(wrap, {
+    type: 'standard',
+    shape: 'rectangular',
+    theme: 'outline',
+    text: 'signin_with',
+    size: 'large',
+    logo_alignment: 'left',
+    width: 280
+  });
+}
+
+function handleGoogleCredential(response) {
+  document.getElementById('auth-loading').classList.add('show');
+  document.getElementById('auth-error').classList.remove('show');
+
+  try {
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    const email = (payload.email || '').toLowerCase();
+
+    setTimeout(() => {
+      document.getElementById('auth-loading').classList.remove('show');
+      if (email === ADMIN_EMAIL) {
+        authGranted = true;
+        closeAuth();
+        doSwitchTab('settings');
+      } else {
+        document.getElementById('auth-error').classList.add('show');
+        renderGoogleBtn();
+        google.accounts.id.disableAutoSelect();
+      }
+    }, 800);
+  } catch(e) {
+    document.getElementById('auth-loading').classList.remove('show');
+    document.getElementById('auth-error').classList.add('show');
+  }
+}
+
+function openAuthModal() {
+  document.getElementById('auth-overlay').classList.add('open');
+  document.getElementById('auth-error').classList.remove('show');
+  document.getElementById('auth-loading').classList.remove('show');
+  renderGoogleBtn();
+}
+
+function closeAuth() {
+  document.getElementById('auth-overlay').classList.remove('open');
+  if (typeof google !== 'undefined' && google.accounts) {
+    google.accounts.id.cancel();
+  }
+}
+
 // ── tabs ──────────────────────────────────────────
 function switchTab(tab) {
+  if (tab === 'settings' && !authGranted) {
+    openAuthModal();
+    return;
+  }
+  doSwitchTab(tab);
+}
+
+function doSwitchTab(tab) {
   const tabs = ['register', 'history', 'report', 'settings'];
   document.querySelectorAll('.tab').forEach((el, i) => {
     const active = tabs[i] === tab;
@@ -855,6 +1032,8 @@ const savedUrl = localStorage.getItem('script_url');
 if (savedUrl) {
   document.getElementById('script-url-input').value = savedUrl;
 }
+
+initGoogleSignIn();
 
 if (getScriptUrl()) {
   document.getElementById('config-banner').classList.add('hidden');
