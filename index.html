@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle de Viagens Uber</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:            #f5f4f0;
+      --surface:       #ffffff;
+      --surface-2:     #eeede9;
+      --border:        rgba(0,0,0,0.08);
+      --border-md:     rgba(0,0,0,0.13);
+      --text:          #181816;
+      --text-2:        #6b6b67;
+      --text-3:        #a0a09c;
+      --green:         #1a9e72;
+      --green-bg:      #e1f5ee;
+      --blue:          #2d7fd4;
+      --blue-bg:       #e3effc;
+      --pink:          #c94e78;
+      --pink-bg:       #fae8ef;
+      --amber:         #b07010;
+      --amber-bg:      #faeeda;
+      --radius:        10px;
+      --radius-lg:     14px;
+      --shadow:        0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:        #111110;
+        --surface:   #1c1c1a;
+        --surface-2: #252523;
+        --border:    rgba(255,255,255,0.07);
+        --border-md: rgba(255,255,255,0.13);
+        --text:      #eeeee8;
+        --text-2:    #9e9e9a;
+        --text-3:    #6b6b67;
+        --green-bg:  #04342c;
+        --blue-bg:   #04243f;
+        --pink-bg:   #3d1020;
+        --amber-bg:  #3a2200;
+      }
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-inner {
+      max-width: 780px; margin: 0 auto;
+      padding: 13px 20px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo {
+      width: 34px; height: 34px;
+      background: var(--text);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo i { font-size: 18px; color: var(--bg); }
+    .brand-name { font-size: 15px; font-weight: 600; color: var(--text); }
+    .brand-sub  { font-size: 11px; color: var(--text-3); }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .sync-badge {
+      font-size: 11px; font-weight: 500;
+      padding: 3px 9px; border-radius: 999px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .sync-badge.ok  { background: var(--green-bg);  color: var(--green); }
+    .sync-badge.err { background: var(--pink-bg);   color: var(--pink); }
+    .sync-badge.cfg { background: var(--amber-bg);  color: var(--amber); }
+    .sync-badge i { font-size: 13px; }
+
+    /* ── CONTAINER ── */
+    .container { max-width: 780px; margin: 0 auto; padding: 28px 20px 80px; }
+
+    /* ── CONFIG BANNER ── */
+    .config-banner {
+      background: var(--amber-bg);
+      border: 1px solid rgba(176,112,16,0.25);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .config-banner i { font-size: 20px; color: var(--amber); flex-shrink: 0; margin-top: 1px; }
+    .config-banner p { font-size: 13px; color: var(--text); line-height: 1.6; }
+    .config-banner strong { font-weight: 600; }
+    .config-banner a { color: var(--blue); }
+    .config-banner.hidden { display: none; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex; gap: 4px;
+      background: var(--surface-2);
+      border-radius: var(--radius-lg);
+      padding: 4px; margin-bottom: 24px;
+    }
+    .tab {
+      flex: 1; padding: 9px 10px;
+      font-size: 13px; font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      border: none; border-radius: calc(var(--radius-lg) - 4px);
+      cursor: pointer; background: transparent; color: var(--text-2);
+      transition: all 0.16s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .tab i { font-size: 15px; }
+    .tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    /* ── SECTIONS ── */
+    .section { display: none; }
+    .section.active { display: block; animation: fadeUp 0.18s ease; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 11px; font-weight: 600;
+      color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.07em;
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .card-title i { font-size: 14px; }
+
+    /* ── FORM ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-full { grid-template-columns: 1fr; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 12px; font-weight: 500; color: var(--text-2); }
+    input, select, textarea {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; color: var(--text);
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border-md);
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--text);
+      box-shadow: 0 0 0 3px rgba(24,24,22,0.07);
+    }
+    textarea { resize: vertical; min-height: 68px; }
+
+    .btn-primary {
+      width: 100%; padding: 11px;
+      background: var(--text); color: var(--bg);
+      border: none; border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary i { font-size: 16px; }
+
+    .btn-outline {
+      padding: 8px 14px;
+      background: transparent;
+      border: 1px solid var(--border-md);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500; color: var(--text);
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-outline:hover { background: var(--surface-2); }
+    .btn-outline i { font-size: 15px; }
+
+    .btn-icon {
+      padding: 7px 8px; background: transparent;
+      border: 1px solid var(--border); border-radius: 8px;
+      cursor: pointer; color: var(--text-3);
+      display: inline-flex; transition: all 0.15s;
+    }
+    .btn-icon:hover { background: var(--pink-bg); border-color: var(--pink); color: var(--pink); }
+    .btn-icon i { font-size: 15px; }
+
+    /* ── METRICS ── */
+    .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+    .metric { background: var(--surface-2); border-radius: var(--radius); padding: 14px 16px; }
+    .metric-label { font-size: 11px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+    .metric-value { font-size: 20px; font-weight: 600; color: var(--text); }
+    .metric-value.green { color: var(--green); }
+
+    /* ── FILTERS ── */
+    .filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+    .filter-row input, .filter-row select { flex: 1; min-width: 130px; }
+
+    /* ── TRIP LIST ── */
+    .trip-list { display: flex; flex-direction: column; gap: 8px; }
+    .trip-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 13px 15px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s;
+    }
+    .trip-item:hover { border-color: var(--border-md); }
+    .trip-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 17px;
+    }
+    .trip-icon.work     { background: var(--blue-bg);  color: var(--blue); }
+    .trip-icon.personal { background: var(--green-bg); color: var(--green); }
+    .trip-icon.health   { background: var(--pink-bg);  color: var(--pink); }
+    .trip-icon.other    { background: var(--surface-2); color: var(--text-2); }
+
+    .trip-info { flex: 1; min-width: 0; }
+    .trip-title { font-size: 14px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trip-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .trip-value { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; color: var(--text); flex-shrink: 0; margin-right: 8px; }
+
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 500;
+    }
+    .badge.work     { background: var(--blue-bg);  color: var(--blue); }
+    .badge.personal { background: var(--green-bg); color: var(--green); }
+    .badge.health   { background: var(--pink-bg);  color: var(--pink); }
+    .badge.other    { background: var(--surface-2); color: var(--text-2); }
+
+    /* ── REPORT TABLE ── */
+    .report-table-wrap { overflow-x: auto; }
+    .report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .report-table th {
+      text-align: left; padding: 7px 10px;
+      font-size: 11px; font-weight: 600; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border-md);
+    }
+    .report-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+    .report-table tr:last-child td { border-bottom: none; }
+    .report-table .total-row td { font-weight: 600; border-top: 1px solid var(--border-md); padding-top: 11px; }
+    .report-table td.mono { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+    /* ── CHART ── */
+    .chart-wrap { position: relative; width: 100%; height: 230px; margin-top: 6px; }
+
+    /* ── EMPTY ── */
+    .empty { text-align: center; padding: 44px 20px; color: var(--text-3); }
+    .empty i { font-size: 38px; display: block; margin-bottom: 10px; opacity: 0.35; }
+    .empty p { font-size: 13px; margin-top: 4px; }
+
+    /* ── QUICK BTNS ── */
+    .quick-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+    /* ── SPINNER ── */
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(10px);
+      background: var(--text); color: var(--bg);
+      padding: 10px 18px; border-radius: var(--radius);
+      font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; gap: 7px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 999; white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { background: #a32d2d; }
+    .toast i { font-size: 15px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 520px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .metrics   { grid-template-columns: 1fr 1fr; }
+      .metrics .metric:last-child { grid-column: 1 / -1; }
+      .tab span { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <div class="logo" aria-hidden="true"><i class="ti ti-car"></i></div>
+    <div>
+      <div class="brand-name">Viagens Uber</div>
+      <div class="brand-sub">Controle de gastos</div>
+    </div>
+    <div class="topbar-right">
+      <div class="sync-badge cfg" id="sync-badge">
+        <i class="ti ti-alert-triangle"></i>
+        <span>Configure o Script</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- BANNER DE CONFIGURAÇÃO -->
+  <div class="config-banner" id="config-banner">
+    <i class="ti ti-settings" aria-hidden="true"></i>
+    <p>
+      <strong>Configure antes de usar:</strong> abra o arquivo
+      <code>index.html</code> num editor de texto, localize a linha
+      <code>const SCRIPT_URL = ""</code> e cole a URL do seu Google Apps Script.
+      Veja as instruções completas no arquivo <strong>LEIA-ME.md</strong>.
+    </p>
+  </div>
+
+  <!-- TABS -->
+  <nav class="tabs" role="tablist" aria-label="Navegação principal">
+    <button class="tab active" role="tab" aria-selected="true"  onclick="switchTab('register')"><i class="ti ti-plus"      aria-hidden="true"></i><span>Nova viagem</span></button>
+    <button class="tab"        role="tab" aria-selected="false" onclick="switchTab('history')"><i class="ti ti-list"       aria-hidden="true"></i><span>Histórico</span></button>
+    <button class="tab"        role="tab" aria-selected="false" onclick="switchTab('report')"><i class="ti ti-chart-bar"   aria-hidden="true"></i><span>Relatório</span></button>
+    <button class="tab"        role="tab" aria-selected="false" onclick="switchTab('settings')"><i class="ti ti-settings" aria-hidden="true"></i><span>Config</span></button>
+  </nav>
+
+  <!-- ═══════════════ NOVA VIAGEM ═══════════════ -->
+  <section id="tab-register" class="section active" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-map-pin" aria-hidden="true"></i> Dados da viagem</div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="trip-date">Data da viagem</label>
+          <input type="date" id="trip-date" />
+        </div>
+        <div class="field">
+          <label for="trip-value">Valor gasto (R$)</label>
+          <input type="number" id="trip-value" placeholder="0,00" min="0" step="0.01" />
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="trip-purpose">Finalidade</label>
+          <select id="trip-purpose">
+            <option value="">Selecione...</option>
+            <option value="work">Trabalho</option>
+            <option value="personal">Pessoal</option>
+            <option value="health">Saúde</option>
+            <option value="other">Outro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="trip-route">Origem → Destino</label>
+          <input type="text" id="trip-route" placeholder="Ex: Casa → Escritório" />
+        </div>
+      </div>
+      <div class="form-grid form-full" style="margin-bottom:18px;">
+        <div class="field">
+          <label for="trip-note">Observação (opcional)</label>
+          <textarea id="trip-note" placeholder="Detalhes adicionais..."></textarea>
+        </div>
+      </div>
+      <button class="btn-primary" id="btn-save" onclick="addTrip()">
+        <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+        Salvar
+      </button>
+    </div>
+  </section>
+
+  <!-- ═══════════════ HISTÓRICO ═══════════════ -->
+  <section id="tab-history" class="section" role="tabpanel">
+    <div class="metrics" id="metrics-area">
+      <div class="metric"><div class="metric-label">Viagens</div><div class="metric-value" id="m-count">—</div></div>
+      <div class="metric"><div class="metric-label">Total gasto</div><div class="metric-value green" id="m-total">—</div></div>
+      <div class="metric"><div class="metric-label">Média/viagem</div><div class="metric-value" id="m-avg">—</div></div>
+    </div>
+    <div class="filter-row">
+      <input type="month" id="filter-month" onchange="renderHistory()" placeholder="Mês" />
+      <select id="filter-purpose" onchange="renderHistory()">
+        <option value="">Todas as finalidades</option>
+        <option value="work">Trabalho</option>
+        <option value="personal">Pessoal</option>
+        <option value="health">Saúde</option>
+        <option value="other">Outro</option>
+      </select>
+      <button class="btn-outline" onclick="clearFilters()"><i class="ti ti-x" aria-hidden="true"></i> Limpar</button>
+      <button class="btn-outline" onclick="loadTrips()"><i class="ti ti-refresh" aria-hidden="true"></i></button>
+    </div>
+    <div class="trip-list" id="trip-list">
+      <div class="empty"><i class="ti ti-loader"></i>Carregando viagens...</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ RELATÓRIO ═══════════════ -->
+  <section id="tab-report" class="section" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-calendar-stats" aria-hidden="true"></i> Período</div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="report-start">Data inicial</label>
+          <input type="date" id="report-start" onchange="renderReport()" />
+        </div>
+        <div class="field">
+          <label for="report-end">Data final</label>
+          <input type="date" id="report-end" onchange="renderReport()" />
+        </div>
+      </div>
+      <div class="quick-btns">
+        <button class="btn-outline" onclick="setQuick('month')"><i class="ti ti-calendar" aria-hidden="true"></i> Este mês</button>
+        <button class="btn-outline" onclick="setQuick('last30')">Últimos 30 dias</button>
+        <button class="btn-outline" onclick="setQuick('year')">Este ano</button>
+        <button class="btn-outline" onclick="exportCSV()"><i class="ti ti-download" aria-hidden="true"></i> Exportar CSV</button>
+      </div>
+    </div>
+    <div id="report-content"></div>
+  </section>
+
+  <!-- ═══════════════ CONFIGURAÇÕES ═══════════════ -->
+  <section id="tab-settings" class="section" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-link" aria-hidden="true"></i> URL do Google Apps Script</div>
+      <div class="field" style="margin-bottom:14px;">
+        <label for="script-url-input">Cole aqui a URL gerada após publicar o script</label>
+        <input type="url" id="script-url-input" placeholder="https://script.google.com/macros/s/..." />
+      </div>
+      <button class="btn-primary" onclick="saveScriptUrl()">
+        <i class="ti ti-device-floppy" aria-hidden="true"></i> Salvar e testar conexão
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-help" aria-hidden="true"></i> Como configurar</div>
+      <ol style="padding-left:18px; font-size:14px; color:var(--text-2); line-height:2.2;">
+        <li>Acesse <a href="https://sheets.google.com" target="_blank" rel="noopener" style="color:var(--blue)">sheets.google.com</a> e crie uma planilha em branco</li>
+        <li>Clique em <strong>Extensões → Apps Script</strong></li>
+        <li>Apague o código padrão e cole o conteúdo do arquivo <code>codigo-google-apps-script.gs</code></li>
+        <li>Clique em <strong>Salvar</strong> (ícone de disquete)</li>
+        <li>Clique em <strong>Implantar → Nova implantação</strong></li>
+        <li>Tipo: <strong>App da Web</strong> · Executar como: <strong>Eu</strong> · Acesso: <strong>Qualquer pessoa</strong></li>
+        <li>Clique em <strong>Implantar</strong> e autorize as permissões</li>
+        <li>Copie a <strong>URL do app da Web</strong> e cole no campo acima</li>
+      </ol>
+    </div>
+  </section>
+
+</main>
+
+<!-- TOAST -->
+<div class="toast" id="toast" role="alert" aria-live="polite">
+  <i class="ti ti-check" id="toast-icon" aria-hidden="true"></i>
+  <span id="toast-msg"></span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ─────────────────────────────────────────────────
+//  CONFIGURAÇÃO — cole a URL do Apps Script aqui
+//  ou use a aba Configurações no sistema
+// ─────────────────────────────────────────────────
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwIkCpswxhcXdyRXEVZnbSiNRrQa5AC6QiKK5-MFq55H3tK601YgWYEYPXUk7G0xSi8A/exec";
+
+// ── constantes ──────────────────────────────────
+const PURPOSES = { work: 'Trabalho', personal: 'Pessoal', health: 'Saúde', other: 'Outro' };
+const PURPOSE_ICONS = { work: 'ti-briefcase', personal: 'ti-user', health: 'ti-heart', other: 'ti-dots' };
+const PURPOSE_COLORS = { work: '#2d7fd4', personal: '#1a9e72', health: '#c94e78', other: '#888780' };
+
+let trips = [];
+let chartRef = null;
+
+// ── URL efetiva (configuração ou localStorage) ───
+function getScriptUrl() {
+  return SCRIPT_URL || localStorage.getItem('script_url') || '';
+}
+
+// ── estado de conexão ────────────────────────────
+function setBadge(state) {
+  const b = document.getElementById('sync-badge');
+  const map = {
+    ok:  ['ok',  'ti-cloud-check', 'Google Sheets'],
+    err: ['err', 'ti-cloud-x',     'Erro de conexão'],
+    cfg: ['cfg', 'ti-alert-triangle', 'Configure o Script'],
+    loading: ['cfg', 'ti-loader', 'Conectando...']
+  };
+  const [cls, icon, label] = map[state] || map.cfg;
+  b.className = `sync-badge ${cls}`;
+  b.innerHTML = `<i class="ti ${icon}"></i><span>${label}</span>`;
+}
+
+// ── toast ────────────────────────────────────────
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  const i = document.getElementById('toast-icon');
+  document.getElementById('toast-msg').textContent = msg;
+  t.className = `toast ${type === 'error' ? 'error' : ''} show`;
+  i.className = `ti ${type === 'error' ? 'ti-x' : 'ti-check'}`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── formatos ─────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return '';
+  const parts = d.split('-');
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return d;
+}
+function fmtCurrency(v) {
+  return 'R$ ' + parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ── tabs ──────────────────────────────────────────
+function switchTab(tab) {
+  const tabs = ['register', 'history', 'report', 'settings'];
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    const active = tabs[i] === tab;
+    el.classList.toggle('active', active);
+    el.setAttribute('aria-selected', active);
+  });
+  document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'history') renderHistory();
+  if (tab === 'report')  renderReport();
+}
+
+// ── carregar viagens do Sheets ────────────────────
+async function loadTrips() {
+  const url = getScriptUrl();
+  if (!url) { setBadge('cfg'); return; }
+  setBadge('loading');
+  try {
+    const res = await fetch(`${url}?action=list`);
+    const data = await res.json();
+    if (data.ok) {
+      trips = data.trips;
+      setBadge('ok');
+      document.getElementById('config-banner').classList.add('hidden');
+    } else {
+      setBadge('err');
+      toast('Erro ao carregar: ' + data.error, 'error');
+    }
+  } catch (e) {
+    setBadge('err');
+    toast('Não foi possível conectar ao Google Sheets', 'error');
+  }
+  renderHistory();
+}
+
+// ── adicionar viagem ─────────────────────────────
+async function addTrip() {
+  const date    = document.getElementById('trip-date').value;
+  const value   = parseFloat(document.getElementById('trip-value').value);
+  const purpose = document.getElementById('trip-purpose').value;
+  const route   = document.getElementById('trip-route').value.trim();
+  const note    = document.getElementById('trip-note').value.trim();
+
+  if (!date)           { toast('Informe a data', 'error'); return; }
+  if (!value || value <= 0) { toast('Informe um valor válido', 'error'); return; }
+  if (!purpose)        { toast('Selecione a finalidade', 'error'); return; }
+
+  const url = getScriptUrl();
+  if (!url) { toast('Configure a URL do Apps Script primeiro', 'error'); switchTab('settings'); return; }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Salvando...';
+
+  const trip = { id: String(Date.now()), date, value, purpose, route, note };
+
+  try {
+    const res  = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'add', trip })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      trips.unshift(trip);
+      document.getElementById('trip-date').value    = new Date().toISOString().slice(0, 10);
+      document.getElementById('trip-value').value   = '';
+      document.getElementById('trip-purpose').value = '';
+      document.getElementById('trip-route').value   = '';
+      document.getElementById('trip-note').value    = '';
+      toast('Viagem salva no Google Sheets!');
+    } else {
+      toast('Erro: ' + data.error, 'error');
+    }
+  } catch (e) {
+    toast('Falha ao salvar. Verifique a conexão.', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-cloud-upload" aria-hidden="true"></i> Salvar';
+}
+
+// ── deletar viagem ───────────────────────────────
+async function deleteTrip(id) {
+  if (!confirm('Remover esta viagem da planilha?')) return;
+  const url = getScriptUrl();
+  try {
+    const res  = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'delete', id })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      trips = trips.filter(t => t.id !== id);
+      renderHistory();
+      toast('Viagem removida da planilha');
+    } else {
+      toast('Erro ao remover: ' + data.error, 'error');
+    }
+  } catch (e) {
+    toast('Falha ao remover', 'error');
+  }
+}
+
+// ── filtros ──────────────────────────────────────
+function getFiltered() {
+  const month   = document.getElementById('filter-month').value;
+  const purpose = document.getElementById('filter-purpose').value;
+  return trips.filter(t => {
+    const okMonth   = !month   || t.date.startsWith(month);
+    const okPurpose = !purpose || t.purpose === purpose;
+    return okMonth && okPurpose;
+  });
+}
+
+function clearFilters() {
+  document.getElementById('filter-month').value   = '';
+  document.getElementById('filter-purpose').value = '';
+  renderHistory();
+}
+
+// ── renderizar histórico ─────────────────────────
+function renderHistory() {
+  const filtered = getFiltered();
+  const total = filtered.reduce((s, t) => s + t.value, 0);
+  const avg   = filtered.length ? total / filtered.length : 0;
+
+  document.getElementById('m-count').textContent = filtered.length;
+  document.getElementById('m-total').textContent = fmtCurrency(total);
+  document.getElementById('m-avg').textContent   = fmtCurrency(avg);
+
+  const list = document.getElementById('trip-list');
+  if (!filtered.length) {
+    list.innerHTML = `
+      <div class="empty">
+        <i class="ti ti-car-off" aria-hidden="true"></i>
+        Nenhuma viagem encontrada
+        <p>Registre sua primeira viagem ou ajuste os filtros.</p>
+      </div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(t => `
+    <div class="trip-item">
+      <div class="trip-icon ${t.purpose}" aria-hidden="true">
+        <i class="ti ${PURPOSE_ICONS[t.purpose]}"></i>
+      </div>
+      <div class="trip-info">
+        <div class="trip-title">${t.route || PURPOSES[t.purpose]}</div>
+        <div class="trip-meta">
+          <span>${fmtDate(t.date)}</span>
+          <span class="badge ${t.purpose}">${PURPOSES[t.purpose]}</span>
+          ${t.note ? `<span>${t.note}</span>` : ''}
+        </div>
+      </div>
+      <div class="trip-value">${fmtCurrency(t.value)}</div>
+      <button class="btn-icon" onclick="deleteTrip('${t.id}')" aria-label="Remover viagem de ${fmtDate(t.date)}">
+        <i class="ti ti-trash" aria-hidden="true"></i>
+      </button>
+    </div>
+  `).join('');
+}
+
+// ── atalhos de período ───────────────────────────
+function setQuick(type) {
+  const now = new Date();
+  let start, end;
+  if (type === 'month') {
+    start = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    const last = new Date(now.getFullYear(), now.getMonth()+1, 0);
+    end = `${last.getFullYear()}-${String(last.getMonth()+1).padStart(2,'0')}-${String(last.getDate()).padStart(2,'0')}`;
+  } else if (type === 'last30') {
+    const d = new Date(now); d.setDate(d.getDate()-30);
+    start = d.toISOString().slice(0,10);
+    end   = now.toISOString().slice(0,10);
+  } else if (type === 'year') {
+    start = `${now.getFullYear()}-01-01`;
+    end   = `${now.getFullYear()}-12-31`;
+  }
+  document.getElementById('report-start').value = start;
+  document.getElementById('report-end').value   = end;
+  renderReport();
+}
+
+// ── relatório ────────────────────────────────────
+function renderReport() {
+  const start = document.getElementById('report-start').value;
+  const end   = document.getElementById('report-end').value;
+  const el    = document.getElementById('report-content');
+
+  if (!start && !end) { setQuick('month'); return; }
+
+  const filtered = trips.filter(t => (!start || t.date >= start) && (!end || t.date <= end));
+
+  if (!filtered.length) {
+    if (chartRef) { chartRef.destroy(); chartRef = null; }
+    el.innerHTML = `<div class="empty"><i class="ti ti-chart-off" aria-hidden="true"></i>Nenhuma viagem no período selecionado</div>`;
+    return;
+  }
+
+  const total = filtered.reduce((s, t) => s + t.value, 0);
+  const byPurpose = {};
+  filtered.forEach(t => {
+    if (!byPurpose[t.purpose]) byPurpose[t.purpose] = { count: 0, sum: 0 };
+    byPurpose[t.purpose].count++;
+    byPurpose[t.purpose].sum += t.value;
+  });
+
+  const summaryRows = Object.entries(byPurpose).map(([p, v]) => `
+    <tr>
+      <td><span class="badge ${p}">${PURPOSES[p]}</span></td>
+      <td>${v.count} viagem${v.count > 1 ? 's' : ''}</td>
+      <td class="mono" style="text-align:right">${fmtCurrency(v.sum)}</td>
+      <td style="text-align:right">${Math.round(v.sum/total*100)}%</td>
+    </tr>
+  `).join('');
+
+  const detailRows = filtered.map(t => `
+    <tr>
+      <td>${fmtDate(t.date)}</td>
+      <td>${t.route || '—'}</td>
+      <td><span class="badge ${t.purpose}">${PURPOSES[t.purpose]}</span></td>
+      <td class="mono" style="text-align:right">${fmtCurrency(t.value)}</td>
+    </tr>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="metrics" style="grid-template-columns:repeat(3,1fr); margin-bottom:0;">
+        <div class="metric"><div class="metric-label">Viagens</div><div class="metric-value">${filtered.length}</div></div>
+        <div class="metric"><div class="metric-label">Total gasto</div><div class="metric-value green">${fmtCurrency(total)}</div></div>
+        <div class="metric"><div class="metric-label">Média/viagem</div><div class="metric-value">${fmtCurrency(total/filtered.length)}</div></div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="report-chart" role="img" aria-label="Gráfico de gastos por finalidade no período selecionado">Distribuição de gastos por finalidade.</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-layout-list" aria-hidden="true"></i> Por finalidade</div>
+      <div class="report-table-wrap">
+        <table class="report-table">
+          <thead><tr><th>Finalidade</th><th>Qtde</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead>
+          <tbody>${summaryRows}</tbody>
+          <tfoot><tr class="total-row"><td colspan="2">Total geral</td><td class="mono" style="text-align:right">${fmtCurrency(total)}</td><td style="text-align:right">100%</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-receipt" aria-hidden="true"></i> Detalhamento completo</div>
+      <div class="report-table-wrap">
+        <table class="report-table">
+          <thead><tr><th>Data</th><th>Rota</th><th>Finalidade</th><th style="text-align:right">Valor</th></tr></thead>
+          <tbody>${detailRows}</tbody>
+          <tfoot><tr class="total-row"><td colspan="3">Total</td><td class="mono" style="text-align:right">${fmtCurrency(total)}</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    if (chartRef) { chartRef.destroy(); chartRef = null; }
+    const labels = Object.keys(byPurpose).map(p => PURPOSES[p]);
+    const data   = Object.keys(byPurpose).map(p => parseFloat(byPurpose[p].sum.toFixed(2)));
+    const colors = Object.keys(byPurpose).map(p => PURPOSE_COLORS[p]);
+    chartRef = new Chart(document.getElementById('report-chart'), {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 3, borderColor: 'transparent', hoverOffset: 4 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '68%',
+        plugins: {
+          legend: { display: true, position: 'right', labels: { boxWidth: 10, borderRadius: 3, font: { size: 12 }, color: '#6b6b67' } },
+          tooltip: { callbacks: { label: ctx => ` ${fmtCurrency(ctx.parsed)}` } }
+        }
+      }
+    });
+  }, 80);
+}
+
+// ── exportar CSV ──────────────────────────────────
+function exportCSV() {
+  const start = document.getElementById('report-start').value;
+  const end   = document.getElementById('report-end').value;
+  const filtered = trips.filter(t => (!start || t.date >= start) && (!end || t.date <= end));
+  if (!filtered.length) { toast('Nenhuma viagem para exportar', 'error'); return; }
+
+  const header = 'Data,Rota,Finalidade,Valor (R$),Observação';
+  const rows = filtered.map(t =>
+    `${fmtDate(t.date)},"${t.route || ''}","${PURPOSES[t.purpose]}","${t.value.toFixed(2).replace('.', ',')}","${t.note || ''}"`
+  );
+  const csv  = [header, ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `viagens_uber_${start || 'inicio'}_${end || 'fim'}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV exportado!');
+}
+
+// ── salvar URL nas configurações ─────────────────
+function saveScriptUrl() {
+  const url = document.getElementById('script-url-input').value.trim();
+  if (!url) { toast('Cole a URL do Apps Script', 'error'); return; }
+  localStorage.setItem('script_url', url);
+  toast('URL salva! Testando conexão...');
+  loadTrips();
+}
+
+// ── init ─────────────────────────────────────────
+document.getElementById('trip-date').value = new Date().toISOString().slice(0, 10);
+
+const savedUrl = localStorage.getItem('script_url');
+if (savedUrl) {
+  document.getElementById('script-url-input').value = savedUrl;
+}
+
+if (getScriptUrl()) {
+  document.getElementById('config-banner').classList.add('hidden');
+  loadTrips();
+} else {
+  setBadge('cfg');
+  document.getElementById('trip-list').innerHTML = `
+    <div class="empty">
+      <i class="ti ti-plug" aria-hidden="true"></i>
+      Conecte ao Google Sheets primeiro
+      <p>Vá na aba <strong>Config</strong> e cole a URL do Apps Script.</p>
+    </div>`;
+}
+</script>
+</body>
+</html>
