@@ -549,22 +549,19 @@
   <div class="auth-modal">
     <div class="auth-modal-icon" aria-hidden="true"><i class="ti ti-lock"></i></div>
     <h2 id="auth-title">Área restrita</h2>
-    <p>Informe seu e-mail para acessar as configurações.</p>
-    <div class="field">
-      <label for="auth-email">E-mail</label>
-      <input type="email" id="auth-email" placeholder="seuemail@gmail.com"
-             onkeydown="if(event.key==='Enter') checkAuth()" />
+    <p>Esta área é de acesso restrito. Faça login com a conta Google autorizada para continuar.</p>
+    <div class="google-btn-wrap">
+      <div id="google-signin-btn"></div>
+    </div>
+    <div class="auth-loading" id="auth-loading">
+      <span class="spinner"></span>
+      <span>Verificando...</span>
     </div>
     <div class="auth-error" id="auth-error">
-      <i class="ti ti-x" aria-hidden="true"></i>
-      <span>E-mail sem permissão de acesso.</span>
+      <i class="ti ti-shield-x" aria-hidden="true"></i>
+      <span>Esta conta não tem permissão de acesso.</span>
     </div>
-    <div class="auth-btns">
-      <button class="btn-ghost" onclick="closeAuth()">Cancelar</button>
-      <button class="btn-primary" onclick="checkAuth()">
-        <i class="ti ti-lock-open" aria-hidden="true"></i> Entrar
-      </button>
-    </div>
+    <button class="auth-cancel" onclick="closeAuth()">Cancelar</button>
   </div>
 </div>
 
